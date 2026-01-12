@@ -2,9 +2,8 @@ import pandas as pd
 
 def get_clean_data(file_path):
     df = pd.read_csv(file_path)
-    
     menu = []
-    # Mapping the columns from your specific dataset
+    
     categories = {
         'Breakfast Suggestion': 'Breakfast',
         'Lunch Suggestion': 'Lunch',
@@ -13,23 +12,20 @@ def get_clean_data(file_path):
     }
     
     for col, cat_name in categories.items():
+        # Get every unique food item in that category
         unique_meals = df[col].unique()
         for meal in unique_meals:
-            subset = df[df[col] == meal]
+            # Find the row for this specific meal
+            subset = df[df[col] == meal].iloc[0]
             
-            # Extracting averages and dividing by 4 since CSV values are daily totals
-            avg_calories = subset['Calories'].mean() / 4
-            avg_protein = subset['Protein'].mean() / 4
-            avg_fat = subset['Fat'].mean() / 4
-            avg_price = subset['Price_RM'].mean() / 4
-            
+            # Use the ACTUAL values from the CSV (No more dividing by 4)
             menu.append({
                 'Item': meal,
                 'Category': cat_name,
-                'Calories': avg_calories,
-                'Protein': avg_protein,
-                'Fat': avg_fat,
-                'Price_RM': avg_price
+                'Calories': subset['Calories'],
+                'Protein': subset['Protein'],
+                'Fat': subset['Fat'],
+                'Price_RM': subset['Price_RM']
             })
             
     return pd.DataFrame(menu)
