@@ -7,40 +7,41 @@ class EP_Optimizer:
         self.target_prot = target_prot
         self.target_fat = target_fat
 
-    def fitness(self, idx):
-        # Get the full daily block from the CSV
-        row = self.df.iloc[int(idx) % len(self.df)]
+    def fitness(self, individual):
+        # individual is now just a list with ONE value: the row index
+        idx = int(individual[0]) % len(self.df)
+        row = self.df.iloc[idx]
         
+        # Pull the fixed values from the CSV row
         t_price = row['Price_RM']
         t_cal = row['Calories']
         t_prot = row['Protein']
         t_fat = row['Fat']
         
-        # Penalties for deviating from targets
-        cal_diff = abs(t_cal - self.target_cal)
-        prot_gap = max(0, self.target_prot - t_prot)
-        fat_gap = max(0, t_fat - self.target_fat)
+        # Constraints/Penalties (Matches your original logic)
+        cal_penalty = abs(t_cal - self.target_cal) * 5
+        prot_penalty = max(0, self.target_prot - t_prot) * 10 
+        fat_penalty = max(0, t_fat - self.target_fat) * 10   
         
-        # Total fitness score (Lower is better)
-        return t_price + (cal_diff * 5) + (prot_gap * 10) + (fat_gap * 10)
+        return t_price + cal_penalty + prot_penalty + fat_penalty
 
     def run(self, generations=100, pop_size=50, mut_rate=0.3):
-        # Initial population: random row indices
-        pop = np.random.randint(0, len(self.df), size=pop_size)
+        # Initialize population with single indices (representing one row each)
+        pop = [[np.random.randint(0, len(self.df))] for _ in range(pop_size)]
         history = []
         
         for g in range(generations):
             offspring = []
             for parent in pop:
-                # Mutation: occasionally jump to a new random row
+                child = parent.copy()
+                # Mutation: Stochastic jump to a different row
                 if np.random.rand() < mut_rate:
-                    offspring.append(np.random.randint(0, len(self.df)))
-                else:
-                    offspring.append(parent)
+                    child[0] = np.random.randint(0, len(self.df))
+                offspring.append(child)
             
-            # Combine and select best survivors (Tournament selection)
-            combined = np.concatenate([pop, offspring])
-            combined = sorted(combined, key=lambda x: self.fitness(x))
+            # Selection: Survival of the Fittest (best RM 20 plans stay)
+            combined = pop + offspring
+            combined.sort(key=lambda x: self.fitness(x))
             pop = combined[:pop_size]
             history.append(self.fitness(pop[0]))
             
